@@ -49,8 +49,9 @@ struct editorConfig {
 };
 struct editorConfig E;
 
-struct termios orig_termios;
-
+/*** prototypes ***/
+void editorRefreshScreen();
+char *editorPrompt(char *prompt);
 
 /* terminal */
 void die(const char *s)
@@ -63,16 +64,16 @@ void die(const char *s)
 
 void disableRawMode()
 {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
     die("tcsetattr");
 }
 
 void enableRawMode()
 {
-  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+  if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
     die("tcgetattr");
   atexit(disableRawMode);
-  struct termios raw = orig_termios;
+  struct termios raw = E.orig_termios;
   raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
   raw.c_iflag &= ~(ICRNL | IXON);
   raw.c_cflag |= (CS8);
@@ -228,7 +229,11 @@ void editorOpen(char *filename) {
 void editorSave() {
 	// Jika argumen filename kosong
 	if (E.filename == NULL) {
-		return;
+		E.filename = editorPrompt("Save as : %s (ESC to cancel)");
+		if(E.filename == NULL){
+			// editorSetStatusMessage("Save Aborted");
+			return;
+		}
 	}
 	int len;
 	char *buf = editorRowsToString(&len);
@@ -273,6 +278,42 @@ void abFree(struct abuf *ab) {
 
 
 /*** input ***/
+char *editorPrompt(char *prompt){
+	size_t bufsize = 128;
+	char *buf = malloc(bufsize);
+	
+	size_t buflen = 0;
+	buf[0] = '\0';
+	
+	while(1){
+		// editorSetStatusMessage(prompt, buf);
+		editorRefreshScreen();
+		
+		int c = editorReadKey();
+		if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
+			if(buflen != 0) buf[--buflen] = '\0';	
+		}else if(c == '\x1b'){
+			// editorSetStatusMessage("");
+			free(buf);
+			return NULL;
+		}else{
+			if(c == '\r'){
+				if(buflen != 0){
+					// editorSetStatusMessage("");
+					return buf;
+				}
+			}else if (!iscntrl(c) && c < 128){
+				if(buflen == bufsize -1){
+					bufsize *= 2;
+					buf = realloc(buf, bufsize);
+				}
+				buf[buflen++] = c;
+				buf[buflen] = '\0';
+			}
+		}
+		
+	}
+}
 void editorMoveCursor(int key) {
   switch (key) {
     case ARROW_LEFT:
