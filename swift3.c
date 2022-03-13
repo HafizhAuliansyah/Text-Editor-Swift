@@ -5,16 +5,27 @@
 #include <unistd.h>
 #include <termios.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_VERSION "0.0.1"
+
+//DROP-DOWN MENUS
+#define OPTION_1 0
+#define OPTION_2 1
+#define OPTION_3 2
+#define OPTION_4 3
+#define OPTION_5 4
+#define OPTION_NIL -1       //Reset option
+#define CONFIRMATION 1
+
+
 
 enum editorKey {
   BACKSPACE = 127,
@@ -38,9 +49,6 @@ typedef struct erow {
 
 struct editorConfig {
   int cx, cy;
-  int rx;
-  int rowoff;
-  int coloff;
   int screenrows;
   int screencols;
   int numrows;
@@ -53,7 +61,7 @@ struct editorConfig {
 struct editorConfig E;
 
 struct termios orig_termios;
-
+LISTCHOICE *mylist, data; //menus handler
 
 /* terminal */
 void die(const char *s)
@@ -190,7 +198,6 @@ void editorInsertChar(int c) {
 
 /*** file i/o ***/
 void editorOpen(char *filename) {
-
   free(E.filename);
   E.filename = strdup(filename);
 
@@ -326,16 +333,46 @@ void editorDrawRows(struct abuf *ab) {
       abAppend(ab, E.row[y].chars, len);
     }
     abAppend(ab, "\x1b[K", 3);
-    if (y < E.screenrows - 1) {
-      abAppend(ab, "\r\n", 2);
-    }
+    abAppend(ab, "\r\n", 2);
+    
   }
 }
+void editorDrawStatusBar(struct abuf *ab) {
+  abAppend(ab, "\x1b[7m", 4);
+  char status[80], rstatus[80];
+  int len = snprintf(status, sizeof(status), "%.20s - %d lines",
+    E.filename ? E.filename : "[No Name]", E.numrows);
+      int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d",
+    E.cy + 1, E.numrows);
+  if (len > E.screencols) len = E.screencols;
+  abAppend(ab, status, len);
+  while (len < E.screencols) {
+   if (E.screencols - len == rlen) {
+      abAppend(ab, rstatus, rlen);
+      break;
+    } else {
+      abAppend(ab, " ", 1);
+      len++;
+    }
+  }
+  abAppend(ab, "\x1b[m", 3);
+}
+
+void editorDrawMessageBar(struct abuf *ab) {
+  abAppend(ab, "\x1b[K", 3);
+  int msglen = strlen(E.statusmsg);
+  if (msglen > E.screencols) msglen = E.screencols;
+  if (msglen && time(NULL) - E.statusmsg_time < 5)
+    abAppend(ab, E.statusmsg, msglen);
+}
+
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
   abAppend(&ab, "\x1b[?25l", 6);
   abAppend(&ab, "\x1b[H", 3);
   editorDrawRows(&ab);
+  editorDrawStatusBar(&ab);
+  editorDrawMessageBar(&ab);
   char buf[32];
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
   abAppend(&ab, buf, strlen(buf));
@@ -343,6 +380,14 @@ void editorRefreshScreen() {
   write(STDOUT_FILENO, ab.b, ab.len);
   abFree(&ab);
 }
+void editorSetStatusMessage(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+  va_end(ap);
+  E.statusmsg_time = time(NULL);
+}
+
 /* init */
 void initEditor() {
   E.cx = 0;
@@ -353,8 +398,8 @@ void initEditor() {
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
 
-
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
+  E.screenrows -= 2;
 }
 /* main function */
 int main(int argc, char *argv[]) {
@@ -373,103 +418,116 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void editorDrawRows(struct abuf *ab) {
-  int y;
-  for (y = 0; y < E.screenrows; y++) {
-    int filerow = y + E.rowoff;
-    if (filerow >= E.numrows) {
-      if (E.numrows == 0 && y == E.screenrows / 3) {
-        char welcome[80];
-        int welcomelen = snprintf(welcome, sizeof(welcome),
-          "Kilo editor -- version %s", KILO_VERSION);
-        if (welcomelen > E.screencols) welcomelen = E.screencols;
-        int padding = (E.screencols - welcomelen) / 2;
-        if (padding) {
-          abAppend(ab, "~", 1);
-          padding--;
-        }
-        while (padding--) abAppend(ab, " ", 1);
-        abAppend(ab, welcome, welcomelen);
-      } else {
-        abAppend(ab, "~", 1);
-      }
-    } else {
-      int len = E.row[filerow].rsize - E.coloff;
-      if (len < 0) len = 0;
-      if (len > E.screencols) len = E.screencols;
-      abAppend(ab, &E.row[filerow].render[E.coloff], len);
-    }
-    abAppend(ab, "\x1b[K", 3);
-  //   if (y < E.screenrows - 1) {
-  //   abAppend(ab, "\r\n", 2);
-  // }
-  }
-}
-void editorDrawStatusBar(struct abuf *ab) {
-  abAppend(ab, "\x1b[7m", 4);
-  char status[80], rstatus[80];
-  int len = snprintf(status, sizeof(status), "%.20s - %d lines",
-    E.filename ? E.filename : "[No Name]", E.numrows);
-  int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d",
-    E.cy + 1, E.numrows);
-  if (len > E.screencols) len = E.screencols;
-  abAppend(ab, status, len);
-  while (len < E.screencols) {
-    if (E.screencols - len == rlen) {
-      abAppend(ab, rstatus, rlen);
-      break;
-    } else {
-      abAppend(ab, " ", 1);
-      len++;
-    }
-  }
-  abAppend(ab, "\x1b[m", 3);
-  abAppend(ab, "\r\n", 2);
-}
-void editorRefreshScreen() {
-  editorScroll();
-  struct abuf ab = ABUF_INIT;
-  abAppend(&ab, "\x1b[?25l", 6);
-  abAppend(&ab, "\x1b[H", 3);
+void    cleanStatusBar();
+void    filemenu();
+void    optionsmenu();
+void    helpmenu();
 
-  editorDrawRows(&ab);
-  editorDrawStatusBar(&ab);
-  editorDrawMessageBar(&ab);
+
+/*-------------*/
+/*  File menu  */
+/*-------------*/
+
+void filemenu() {
+  data.index = OPTION_NIL;
+  write_str(1, rows, STATUS_BAR_MSG2, STATUSBAR, STATUSMSG);
+  loadmenus(mylist, FILE_MENU);
+  write_str(1, 1, "File", MENU_SELECTOR, MENU_FOREGROUND1);
+  draw_window(1, 2, 13, 8, MENU_PANEL, MENU_FOREGROUND0,0, 1,0);
+  kglobal = start_vmenu(&data);
+  close_window();
+  write_str(1, 1, "File  Options  Help", MENU_PANEL, MENU_FOREGROUND0);
+  write_str(1, 1, "F", MENU_PANEL, F_RED);
+  write_str(8, 1, "p", MENU_PANEL, F_RED);
+  write_str(16, 1, "H", MENU_PANEL, F_RED);
+  update_screen();
+  free_list(mylist);
+
+  if(data.index == OPTION_1) {
+    
+
+  }
+  if(data.index == OPTION_2) {
+    
+  }
+  if(data.index == OPTION_3) {
+    
+  }
+
+  if(data.index == OPTION_4) {
+    
+  }
+
+  if(data.index == OPTION_5) {
+   
+  }
+  data.index = OPTION_NIL;
+  cleanStatusBar();
+   //Restore message in status bar
+   write_str(1, rows, STATUS_BAR_MSG1, STATUSBAR, STATUSMSG);
+}
+
+/*--------------------------*/
+/* Display Options menu     */
+/*--------------------------*/
+
+void optionsmenu() {
+  int  setColor;
+  data.index = OPTION_NIL;
+  cleanStatusBar();
+  write_str(1, rows, STATUS_BAR_MSG2, STATUSBAR, STATUSMSG);
+  loadmenus(mylist, OPT_MENU);
+  write_str(7, 1, "Options", MENU_SELECTOR, MENU_FOREGROUND1);
+  draw_window(7, 2, 20, 6, MENU_PANEL, MENU_FOREGROUND0,0, 1,0);
+  kglobal = start_vmenu(&data);
+  close_window();
+  write_str(1, 1, "File  Options  Help", MENU_PANEL, MENU_FOREGROUND0);
+  write_str(1, 1, "F", MENU_PANEL, F_RED);
+  write_str(8, 1, "p", MENU_PANEL, F_RED);
+  write_str(16, 1, "H", MENU_PANEL, F_RED);
+  update_screen();
+
+  free_list(mylist);
+  if(data.index == OPTION_1) {
+   
+  }
+  if(data.index == OPTION_3) {
   
-  char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
-                                            (E.rx - E.coloff) + 1);
-  abAppend(&ab, buf, strlen(buf));
-  abAppend(&ab, "\x1b[?25h", 6);
-  write(STDOUT_FILENO, ab.b, ab.len);
-  abFree(&ab);
+  }
+  data.index = OPTION_NIL;
+  //Restore message in status bar
+  cleanStatusBar();
+  write_str(1, rows, STATUS_BAR_MSG1, STATUSBAR, STATUSMSG);
+
 }
 
+/*--------------------------*/
+/* Display Help menu        */
+/*--------------------------*/
 
-void initEditor() {
-  E.cx = 0;
-  E.cy = 0;
-  E.rx = 0;
-  E.rowoff = 0;
-  E.coloff = 0;
-  E.numrows = 0;
-  E.row = NULL;
-  if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
-  E.screenrows -= 2;
-}
-
-void editorSetStatusMessage(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
-  va_end(ap);
-  E.statusmsg_time = time(NULL);
-}
-
-void editorDrawMessageBar(struct abuf *ab) {
-  abAppend(ab, "\x1b[K", 3);
-  int msglen = strlen(E.statusmsg);
-  if (msglen > E.screencols) msglen = E.screencols;
-  if (msglen && time(NULL) - E.statusmsg_time < 5)
-    abAppend(ab, E.statusmsg, msglen);
+void helpmenu() {
+  cleanStatusBar();
+  data.index = OPTION_NIL;
+  write_str(1, rows, STATUS_BAR_MSG2, STATUSBAR, STATUSMSG);
+  loadmenus(mylist, HELP_MENU);
+  write_str(16, 1, "Help", MENU_SELECTOR, MENU_FOREGROUND1);
+  draw_window(16, 2, 26, 5, MENU_PANEL, MENU_FOREGROUND0, 0,1,0);
+  kglobal = start_vmenu(&data);
+  close_window();
+  write_str(1, 1, "File  Options  Help", MENU_PANEL, MENU_FOREGROUND0);
+  write_str(1, 1, "F", MENU_PANEL, F_RED);
+  write_str(8, 1, "p", MENU_PANEL, F_RED);
+  write_str(16, 1, "H", MENU_PANEL, F_RED);
+  update_screen();
+  free_list(mylist);
+  if(data.index == OPTION_1) {
+    
+  }
+  if(data.index == OPTION_2) {
+   
+  }
+  data.index = -1;
+  //Restore message in status bar
+  cleanStatusBar();
+  write_str(1, rows, STATUS_BAR_MSG1, STATUSBAR, STATUSMSG);
 }
