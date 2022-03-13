@@ -30,8 +30,12 @@
 #define OPTION_5 4
 #define OPTION_NIL -1       //Reset option
 #define CONFIRMATION 1
-
-
+#define STATUS_BAR_MSG1  " [C-Edit] | F2,CTRL+L: MENU | F1: HELP"
+#define STATUS_BAR_MSG2 " [C-Edit] Press ESC to exit menu.             "
+#define STATUS_BAR_MSG3 " ENTER: SELECT | <- -> ARROW KEYS             "
+#define ROWS_FAILSAFE 25
+int     rows = 0, columns = 0, old_rows = 0, old_columns = 0;
+char    kglobal = 0;   
 
 enum editorKey {
   BACKSPACE = 127,
