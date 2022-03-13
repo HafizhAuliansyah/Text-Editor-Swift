@@ -1,22 +1,3 @@
-/*
-======================================================================
-SCREEN MODULE - CODE
-Description:
-Module to create a double screen buffer to control how things are
-displayed on the terminal. Simple linked list with a "cell" that
-stores the character to be shown along with its background and
-foreground colors. The size of our buffer will be determined by
-sc_rows x sc_columns.
-Everything you want to show on screen will be printed to the
-buffer first. Then the update routine will finally show the final
-composition to the user.
-
-@author : Velorek
-@version : 1.0
-Last modified : 15/04/2019 ScreeChanged added + update_ch.
-               Update_smart corrected
-=====================================================================
-*/
 
 /*====================================================================*/
 /* COMPILER DIRECTIVES AND INCLUDES                                   */

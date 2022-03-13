@@ -1,13 +1,3 @@
-/*
-======================================================================
-HEADER:
-Module to create vertical and horizontal selection menus with
-double linked list.
-@author : Velorek
-@version : 1.0
--LAST MODIFIED : 14/04/2019 Rename headers
-======================================================================
-*/
 
 #ifndef _LISTC_H_
 #define _LISTC_H_

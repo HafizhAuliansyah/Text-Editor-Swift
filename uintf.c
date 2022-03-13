@@ -1,18 +1,3 @@
-/*
-======================================================================
-Module to manage user interface options like menus,
-windows, textbox, etc.
-
-@author : Velorek
-@version : 1.0
-
-LAST MODIFIED : 14/04/2019 - Rename headers
-======================================================================
-*/
-
-/*====================================================================*/
-/* COMPILER DIRECTIVES AND INCLUDES                                   */
-/*====================================================================*/
 
 #include <stdio.h>
 #include "scbuf.h"

@@ -1,28 +1,13 @@
-/*
-========================================================================
-- HEADER -
-Module to handle keyboard input in Linux and create
-a further layer of abstraction.
-@author : Velorek
-@version : 1.0
-Last modified: 11/03/2021 +Added home/end keys
-========================================================================
-*/
+
 
 
 #ifndef _KEYB_H_
 #define _KEYB_H_
 
-/*====================================================================*/
-/* COMPILER DIRECTIVES AND INCLUDES                                   */
-/*====================================================================*/
 
 #include <stdio.h>
 #include "rterm.h"
 
-/*====================================================================*/
-/* KEYS - CONSTANTS                                                   */
-/*====================================================================*/
 
 #define K_ENTER 13
 #define K_CAPS 91
@@ -75,10 +60,6 @@ Last modified: 11/03/2021 +Added home/end keys
 
 #define SPECIAL_CHARS_SET1 -61
 #define SPECIAL_CHARS_SET2 -62
-
-/*====================================================================*/
-/* FUNCTION PROTOTYPES                                                */
-/*====================================================================*/
 
 int     read_keytrail(char chartrail[5]);
 int     read_accent(char *ch, char accentchar[2]);

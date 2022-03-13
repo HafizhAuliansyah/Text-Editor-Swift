@@ -1,18 +1,3 @@
-/*
-======================================================================
-Module to make a circular linked list to make a selection menu in C.
-
-@author : Velorek
-@version : 1.0
-Last modified : 11/02/2019 - Switch to readch() instead of readch()
-                06/04/2019 - Fixed memory errors and leaks.
-        14/04/2019 - Rename headers
-======================================================================
-*/
-
-/*====================================================================*/
-/* COMPILER DIRECTIVES AND INCLUDES                                   */
-/*====================================================================*/
 
 #include <stdio.h>
 #include <string.h>

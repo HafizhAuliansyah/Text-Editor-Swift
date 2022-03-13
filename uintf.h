@@ -1,13 +1,3 @@
-/*
-========================================================================
-- HEADER -
-Module to show user interface windows, textbox, etc.
-@author : Velorek
-@version : 1.0
-Last modified: 14/04/2019 Rename headers
-
-========================================================================
-*/
 
 #ifndef _UINTF_H_
 #define _UINTF_H_

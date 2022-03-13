@@ -1,13 +1,4 @@
-/*
-======================================================================
-HEADER: Module to create a double screen buffer to control how things
-are displayed on the terminal.
 
-@author : Velorek
-@version : 1.0
-Last modified : 14/4/2019 Rename headers + screenChanged added
-======================================================================
-*/
 
 #ifndef _SCBUF_H_
 #define _SCBUF_H_
