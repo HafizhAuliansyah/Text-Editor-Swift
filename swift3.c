@@ -54,7 +54,7 @@ struct editorConfig {
 struct editorConfig E;
 
 struct termios orig_termios;
-LISTCHOICE *mylist, data; //menus handler
+
 
 /* terminal */
 void die(const char *s)
