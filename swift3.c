@@ -51,7 +51,6 @@ struct editorConfig {
 };
 struct editorConfig E;
 
-struct termios orig_termios;
 
 
 /* terminal */
@@ -65,16 +64,16 @@ void die(const char *s)
 
 void disableRawMode()
 {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
     die("tcsetattr");
 }
 
 void enableRawMode()
 {
-  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+  if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
     die("tcgetattr");
   atexit(disableRawMode);
-  struct termios raw = orig_termios;
+  struct termios raw = E.orig_termios;
   raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
   raw.c_iflag &= ~(ICRNL | IXON);
   raw.c_cflag |= (CS8);
@@ -333,7 +332,7 @@ void editorProcessKeypress() {
 				E.cy = E.rowoff;
 			}else if(c == PAGE_DOWN){
 				E.cy = E.rowoff + E.screenrows - 1;
-				if(E.cy > E.numrows) E.cy = E.numrows;
+				if(E.cy > E.numrows) E.cy = E.numrows - 1;
 			}
 			int times = E.screenrows;
 			while(times--)
