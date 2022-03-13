@@ -10,6 +10,11 @@
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
+#include "scbuf.h"
+#include "listc.h"
+#include "keyb.h"
+#include "text_op.h"
+#include "uintf.h"
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_VERSION "0.0.1"
