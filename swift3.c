@@ -15,6 +15,7 @@
 #include "keyb.h"
 #include "text_op.h"
 #include "uintf.h"
+#include "rterm.h"
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_VERSION "0.0.1"
