@@ -13,7 +13,7 @@
 #include "scbuf.h"
 #include "listc.h"
 #include "keyb.h"
-#include "text_op.h"
+// #include "text_op.h"
 #include "uintf.h"
 #include "rterm.h"
 /* define */
