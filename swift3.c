@@ -2,6 +2,7 @@
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _GNU_SOURCE
+
 #include <unistd.h>
 #include <termios.h>
 #include <stdio.h>
@@ -9,12 +10,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_TAB_STOP 8
 #define SWIFT_VERSION "0.0.1"
+#define SWIFT_QUIT_TIMES 3
 
 enum editorKey
 {
@@ -49,10 +52,14 @@ struct editorConfig {
 	int numrows;
 	erow *row;
 	int dirty;
-	struct termios orig_termios;
+	char *filename;
+ 	struct termios orig_termios;
 };
 struct editorConfig E;
 
+/*** prototypes ***/
+void editorRefreshScreen();
+char *editorPrompt(char *prompt);
 
 /* terminal */
 void die(const char *s)
@@ -349,24 +356,72 @@ void editorInsertNewline()
 }
 
 /*** file i/o ***/
-void editorOpen(char *filename)
-{
-  FILE *fp = fopen(filename, "r");
-  if (!fp)
-    die("fopen");
-  char *line = NULL;
-  size_t linecap = 0;
-  ssize_t linelen;
-  while ((linelen = getline(&line, &linecap, fp)) != -1)
-  {
-    while (linelen > 0 && (line[linelen - 1] == '\n' ||
-                           line[linelen - 1] == '\r'))
-      linelen--;
-    editorInsertRow(E.numrows, line, linelen);
-  }
-  free(line);
-  fclose(fp);
-  E.dirty = 0;
+char *editorRowsToString(int *buflen){
+	int totlen = 0;
+	int j;
+	for (j = 0; j < E.numrows; j++)
+	    totlen += E.row[j].size + 1;
+	*buflen = totlen;
+	
+	char *buf = malloc(totlen);
+	char *p = buf;
+	for (j = 0; j < E.numrows; j++) {
+		memcpy(p, E.row[j].chars, E.row[j].size);
+	    p += E.row[j].size;
+	    *p = '\n';
+	    p++;
+	}
+	
+	return buf;
+}
+void editorOpen(char *filename) {
+	free(E.filename);
+	E.filename = strdup(filename);
+	
+	FILE *fp = fopen(filename, "r");
+	if(!fp) die("fopen");
+	
+	char *line = NULL;
+	size_t linecap = 0;
+	ssize_t linelen;
+	while((linelen = getline(&line, &linecap, fp)) != -1){
+		while(linelen > 0 && (line[linelen-1] == '\n') || line[linelen-1] == '\r')
+			linelen--;
+		editorInsertRow(E.numrows, line, linelen);
+	}
+	free(line);
+	fclose(fp);
+	E.dirty = 0;
+}
+void editorSave() {
+	// Jika argumen filename kosong
+	if (E.filename == NULL) {
+		E.filename = editorPrompt("Save as : %s (ESC to cancel)");
+		if(E.filename == NULL){
+			// editorSetStatusMessage("Save Aborted");
+			return;
+		}
+	}
+	int len;
+	char *buf = editorRowsToString(&len);
+	
+	// Membuka file dengan Read & Write dan Permission Create File 0644
+	int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+	// Jika file yang dicari tersedia
+	if( fd != -1){
+		if(ftruncate(fd, len) != -1){
+			if(write(fd, buf, len) == len){
+				close(fd);
+				free(buf);
+				E.dirty = 0;
+				// editorSetStatusMessage("%d bytes writtem to disk",len);
+				return;
+			}
+		}
+		close(fd);
+	}
+	free(buf);
+	// editorSetStatusMessage("Can't save ! I/O Error: %s", strerror(errno));
 }
 
 /*** append buffer ***/
@@ -393,6 +448,42 @@ void abFree(struct abuf *ab)
 }
 
 /*** input ***/
+char *editorPrompt(char *prompt){
+	size_t bufsize = 128;
+	char *buf = malloc(bufsize);
+	
+	size_t buflen = 0;
+	buf[0] = '\0';
+	
+	while(1){
+		// editorSetStatusMessage(prompt, buf);
+		editorRefreshScreen();
+		
+		int c = editorReadKey();
+		if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
+			if(buflen != 0) buf[--buflen] = '\0';	
+		}else if(c == '\x1b'){
+			// editorSetStatusMessage("");
+			free(buf);
+			return NULL;
+		}else{
+			if(c == '\r'){
+				if(buflen != 0){
+					// editorSetStatusMessage("");
+					return buf;
+				}
+			}else if (!iscntrl(c) && c < 128){
+				if(buflen == bufsize -1){
+					bufsize *= 2;
+					buf = realloc(buf, bufsize);
+				}
+				buf[buflen++] = c;
+				buf[buflen] = '\0';
+			}
+		}
+		
+	}
+}
 void editorMoveCursor(int key) {
   	erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 	switch(key){
@@ -430,18 +521,27 @@ void editorMoveCursor(int key) {
 		E.cx = rowlen;
 	}
 }
-void editorProcessKeypress()
-{
+
+void editorProcessKeypress() {
+	static int quit_times = SWIFT_QUIT_TIMES;
   int c = editorReadKey();
   switch (c) {
     case '\r':
     	editorInsertNewline();
     	break;
     case CTRL_KEY('q'):
-	    write(STDOUT_FILENO, "\x1b[2J", 4);
-	    write(STDOUT_FILENO, "\x1b[H", 3);
-	    exit(0);
-	    break;
+		if(E.dirty && quit_times > 0 ){
+			// editorSetStatusMessage("WARNING !! File has unsaved changes. Press Ctrl-Q %d more times to quit", quit_times);
+			quit_times--;
+			return;
+		}
+      write(STDOUT_FILENO, "\x1b[2J", 4);
+      write(STDOUT_FILENO, "\x1b[H", 3);
+      exit(0);
+      break;
+    case CTRL_KEY('s'):
+    	editorSave();
+    	break;
     case HOME_KEY:
       	E.cx = 0;
       	break;
@@ -483,6 +583,7 @@ void editorProcessKeypress()
 	    editorInsertChar(c);
 	    break;
   }
+  quit_times = SWIFT_QUIT_TIMES;
 }
 
 /* output */
@@ -543,6 +644,27 @@ void editorDrawRows(struct abuf *ab) {
     }
   }
 }
+void editorDrawStatusBar(struct abuf *ab) {
+	abAppend(ab, "\x1b[7m", 4);
+	char status[80], rstatus[80];
+	int len = snprintf(status, sizeof(status), "%.20s - %d lines %s", 
+		E.filename ? E.filename : "[No Name]", E.numrows, 
+		E.dirty ? "(modified)" : "");
+	int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
+	if (len > E.screencols) len = E.screencols;
+	abAppend(ab, status, len);
+	while (len < E.screencols) {
+	if (E.screencols - len == rlen) {
+	    abAppend(ab, rstatus, rlen);
+	    break;
+	} else {
+	    abAppend(ab, " ", 1);
+	    len++;
+		}
+	}
+  abAppend(ab, "\x1b[m", 3);
+  abAppend(ab, "\r\n", 2);
+}
 void editorRefreshScreen() {
 	editorScroll();
 	
@@ -571,7 +693,6 @@ void initEditor() {
 	E.row = NULL;
 	E.dirty = 0;
 	if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
-
 }
 /* main function */
 int main(int argc, char *argv[])
