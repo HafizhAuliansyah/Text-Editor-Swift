@@ -55,6 +55,7 @@ struct editorConfig {
 	char *filename;
  	struct termios orig_termios;
 };
+
 struct editorConfig E;
 
 /*** prototypes ***/
@@ -213,7 +214,6 @@ int editorRowCxToRx(erow *row, int cx){
 	return rx;
 }
 
-/*** row operations ***/
 void editorUpdateRow(erow *row)
 {
   int tabs = 0;
