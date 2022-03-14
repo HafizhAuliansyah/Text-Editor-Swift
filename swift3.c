@@ -12,7 +12,7 @@
 #include <string.h>
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
-#define KILO_TAB_STOP 8
+#define SWIFT_TAB_STOP 8
 #define SWIFT_VERSION "0.0.1"
 
 enum editorKey
@@ -212,7 +212,7 @@ int editorRowCxToRx(erow *row, int cx)
   for (j = 0; j < cx; j++)
   {
     if (row->chars[j] == '\t')
-      rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+      rx += (SWIFT_TAB_STOP - 1) - (rx % SWIFT_TAB_STOP);
     rx++;
   }
   return rx;
@@ -227,14 +227,14 @@ void editorUpdateRow(erow *row)
     if (row->chars[j] == '\t')
       tabs++;
   free(row->render);
-  row->render = malloc(row->size + tabs * (KILO_TAB_STOP - 1) + 1);
+  row->render = malloc(row->size + tabs * (SWIFT_TAB_STOP - 1) + 1);
   int idx = 0;
   for (j = 0; j < row->size; j++)
   {
     if (row->chars[j] == '\t')
     {
       row->render[idx++] = ' ';
-      while (idx % KILO_TAB_STOP != 0)
+      while (idx % SWIFT_TAB_STOP != 0)
         row->render[idx++] = ' ';
     }
     else
