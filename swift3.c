@@ -12,15 +12,16 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-
+#include <time.h>
+#include <stdarg.h>
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_TAB_STOP 8
 #define SWIFT_VERSION "0.0.1"
 #define SWIFT_QUIT_TIMES 3
 
-enum editorKey
-{
+
+enum editorKey {
   BACKSPACE = 127,
   ARROW_LEFT = 1000,
   ARROW_RIGHT,
@@ -53,6 +54,8 @@ struct editorConfig {
 	erow *row;
 	int dirty;
 	char *filename;
+	char statusmsg[80];
+  	time_t statusmsg_time;
  	struct termios orig_termios;
 };
 
@@ -61,6 +64,7 @@ struct editorConfig E;
 /*** prototypes ***/
 void editorRefreshScreen();
 char *editorPrompt(char *prompt);
+void editorSetStatusMessage(const char *fmt, ...);
 
 /* terminal */
 void die(const char *s)
@@ -398,7 +402,7 @@ void editorSave() {
 	if (E.filename == NULL) {
 		E.filename = editorPrompt("Save as : %s (ESC to cancel)");
 		if(E.filename == NULL){
-			// editorSetStatusMessage("Save Aborted");
+			editorSetStatusMessage("Save Aborted");
 			return;
 		}
 	}
@@ -414,14 +418,14 @@ void editorSave() {
 				close(fd);
 				free(buf);
 				E.dirty = 0;
-				// editorSetStatusMessage("%d bytes writtem to disk",len);
+				editorSetStatusMessage("%d bytes writtem to disk",len);
 				return;
 			}
 		}
 		close(fd);
 	}
 	free(buf);
-	// editorSetStatusMessage("Can't save ! I/O Error: %s", strerror(errno));
+	editorSetStatusMessage("Can't save ! I/O Error: %s", strerror(errno));
 }
 
 /*** append buffer ***/
@@ -456,20 +460,20 @@ char *editorPrompt(char *prompt){
 	buf[0] = '\0';
 	
 	while(1){
-		// editorSetStatusMessage(prompt, buf);
+		editorSetStatusMessage(prompt, buf);
 		editorRefreshScreen();
 		
 		int c = editorReadKey();
 		if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
 			if(buflen != 0) buf[--buflen] = '\0';	
 		}else if(c == '\x1b'){
-			// editorSetStatusMessage("");
+			editorSetStatusMessage("");
 			free(buf);
 			return NULL;
 		}else{
 			if(c == '\r'){
 				if(buflen != 0){
-					// editorSetStatusMessage("");
+					editorSetStatusMessage("");
 					return buf;
 				}
 			}else if (!iscntrl(c) && c < 128){
@@ -531,7 +535,7 @@ void editorProcessKeypress() {
     	break;
     case CTRL_KEY('q'):
 		if(E.dirty && quit_times > 0 ){
-			// editorSetStatusMessage("WARNING !! File has unsaved changes. Press Ctrl-Q %d more times to quit", quit_times);
+			editorSetStatusMessage("WARNING !! File has unsaved changes. Press Ctrl-Q %d more times to quit", quit_times);
 			quit_times--;
 			return;
 		}
@@ -638,10 +642,8 @@ void editorDrawRows(struct abuf *ab) {
 	    abAppend(ab, c, len);
     }
     abAppend(ab, "\x1b[K", 3);
-    if (y < E.screenrows - 1)
-    {
-      abAppend(ab, "\r\n", 2);
-    }
+    abAppend(ab, "\r\n", 2);
+    
   }
 }
 void editorDrawStatusBar(struct abuf *ab) {
@@ -665,6 +667,13 @@ void editorDrawStatusBar(struct abuf *ab) {
   abAppend(ab, "\x1b[m", 3);
   abAppend(ab, "\r\n", 2);
 }
+void editorDrawMessageBar(struct abuf *ab) {
+  abAppend(ab, "\x1b[K", 3);
+  int msglen = strlen(E.statusmsg);
+  if (msglen > E.screencols) msglen = E.screencols;
+  if (msglen && time(NULL) - E.statusmsg_time < 5)
+    abAppend(ab, E.statusmsg, msglen);
+}
 void editorRefreshScreen() {
 	editorScroll();
 	
@@ -672,7 +681,10 @@ void editorRefreshScreen() {
 	
 	abAppend(&ab, "\x1b[?25l", 6);
 	abAppend(&ab, "\x1b[H", 3);
+	
 	editorDrawRows(&ab);
+	editorDrawStatusBar(&ab);
+	editorDrawMessageBar(&ab);
 	
 	char buf[32];
 	snprintf(buf, sizeof(buf), "\x1b[%d;%dH",(E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1);
@@ -682,6 +694,15 @@ void editorRefreshScreen() {
 	write(STDOUT_FILENO, ab.b, ab.len);
 	abFree(&ab);
 }
+
+void editorSetStatusMessage(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+  va_end(ap);
+  E.statusmsg_time = time(NULL);
+}
+
 /* init */
 void initEditor() {
 	E.cx = 0;
@@ -691,8 +712,12 @@ void initEditor() {
 	E.coloff = 0;
 	E.numrows = 0;
 	E.row = NULL;
+	E.filename = NULL;
 	E.dirty = 0;
+	E.statusmsg[0] = '\0';
+  	E.statusmsg_time = 0;
 	if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
+	E.screenrows -= 2;
 }
 /* main function */
 int main(int argc, char *argv[])
@@ -703,8 +728,10 @@ int main(int argc, char *argv[])
   {
     editorOpen(argv[1]);
   }
-  while (1)
-  {
+
+  editorSetStatusMessage("SHORTCUT: Ctrl - Q = quit");
+
+  while (1) {
     editorRefreshScreen();
     editorProcessKeypress();
   }
