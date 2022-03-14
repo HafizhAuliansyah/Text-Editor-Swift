@@ -400,9 +400,9 @@ void editorOpen(char *filename) {
 void editorSave() {
 	// Jika argumen filename kosong
 	if (E.filename == NULL) {
-		E.filename = editorPrompt("Save as : %s (ESC to cancel)");
+		E.filename = editorPrompt("Save : %s (ESC to cancel)");
 		if(E.filename == NULL){
-			editorSetStatusMessage("Save Aborted");
+			editorSetStatusMessage("Failed to save");
 			return;
 		}
 	}
@@ -418,14 +418,14 @@ void editorSave() {
 				close(fd);
 				free(buf);
 				E.dirty = 0;
-				editorSetStatusMessage("%d bytes writtem to disk",len);
+				editorSetStatusMessage("%d bytes saved to disk",len);
 				return;
 			}
 		}
 		close(fd);
 	}
 	free(buf);
-	editorSetStatusMessage("Can't save ! I/O Error: %s", strerror(errno));
+	editorSetStatusMessage("Error saving file: %s", strerror(errno));
 }
 
 /*** append buffer ***/
@@ -729,7 +729,7 @@ int main(int argc, char *argv[])
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("SHORTCUT: Ctrl - Q = quit");
+  editorSetStatusMessage("SHORTCUT: Ctrl - Q = quit; Ctrl - S  = save");
 
   while (1) {
     editorRefreshScreen();
