@@ -1,6 +1,6 @@
 [Project]
-FileName=TextEditorSwift.dev
-Name=TextEditorSwift
+FileName=remake.dev
+Name=remake
 Type=1
 Ver=2
 ObjFiles=
@@ -12,7 +12,7 @@ MakeIncludes=
 Compiler=
 CppCompiler=
 Linker=
-IsCpp=1
+IsCpp=0
 Icon=
 ExeOutput=
 ObjectOutput=
@@ -27,9 +27,9 @@ CommandLine=
 Folders=
 IncludeVersionInfo=0
 SupportXPThemes=0
-CompilerSet=0
-CompilerSettings=0000000000000000000000000
-UnitCount=2
+CompilerSet=1
+CompilerSettings=0000000000000000001000000
+UnitCount=5
 
 [VersionInfo]
 Major=1
@@ -51,8 +51,8 @@ AutoIncBuildNr=0
 SyncProduct=1
 
 [Unit1]
-FileName=main.cpp
-CompileCpp=1
+FileName=main.c
+CompileCpp=0
 Folder=
 Compile=1
 Link=1
@@ -61,8 +61,38 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit2]
-FileName=swift3.c
-CompileCpp=1
+FileName=buffer.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit3]
+FileName=buffer.c
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit4]
+FileName=editor.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit5]
+FileName=editor.c
+CompileCpp=0
 Folder=
 Compile=1
 Link=1
