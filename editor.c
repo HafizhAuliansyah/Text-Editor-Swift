@@ -267,14 +267,14 @@ void editorRowDelChar(erow *row, int at)
 /*** editor operations ***/
 void editorInsertChar(int c)
 {
-    if (E.cy == E.numrows)
+    if (C.y == E.numrows)
     {
         editorInsertRow(E.numrows, "", 0);
     }
-    if (E.row[E.cy].size < MAX_COLUMN)
+    if (E.row[C.y].size < MAX_COLUMN)
     {
-        editorRowInsertChar(&E.row[E.cy], E.cx, c);
-        E.cx++;
+        editorRowInsertChar(&E.row[C.y], C.x, c);
+        C.x++;
     }
     else
     {
@@ -284,29 +284,30 @@ void editorInsertChar(int c)
 
 void editorDelChar()
 {
-    if (E.cy == E.numrows)
+    if (C.y == E.numrows)
         return;
-    if (E.cx == 0 && E.cy == 0)
+    if (C.x == 0 && C.y == 0)
         return;
+
     // erow *row = ;
-    if (E.cx > 0)
+    if (C.x > 0)
     {
-        editorRowDelChar(&E.row[E.cy], E.cx - 1);
-        E.cx--;
+        editorRowDelChar(&E.row[C.y], C.x - 1);
+        C.x--;
     }
     else
     {
-        E.cx = E.row[E.cy - 1].size;
-        if (E.row[E.cy - 1].size + E.row[E.cy].size <= MAX_COLUMN)
+        C.x = E.row[C.y - 1].size;
+        if (E.row[C.y - 1].size + E.row[C.y].size <= MAX_COLUMN)
         {
-            editorRowAppendString(&E.row[E.cy - 1], E.row[E.cy].chars, E.row[E.cy].size);
-            editorDelRow(E.cy);
-            E.cy--;
+            editorRowAppendString(&E.row[C.y - 1], E.row[C.y].chars, E.row[C.y].size);
+            editorDelRow(C.y);
+            C.y--;
         }
         else
         {
             editorSetStatusMessage("CANNOT ERASE");
-            E.cx = E.row[E.cy].size;
+            C.x = E.row[C.y].size;
         }
     }
 }
@@ -315,21 +316,21 @@ void editorInsertNewline()
 {
     if (E.numrows < MAX_ROW)
     {
-        if (E.cx == 0)
+        if (C.x == 0)
         {
-            editorInsertRow(E.cy, "", 0);
+            editorInsertRow(C.y, "", 0);
         }
         else
         {
-            erow *row = &E.row[E.cy];
-            editorInsertRow(E.cy + 1, &row->chars[E.cx], row->size - E.cx);
-            row = &E.row[E.cy];
-            row->size = E.cx;
+            erow *row = &E.row[C.y];
+            editorInsertRow(C.y + 1, &row->chars[C.x], row->size - C.x);
+            row = &E.row[C.y];
+            row->size = C.x;
             row->chars[row->size] = '\0';
             editorUpdateRow(&(*row));
         }
-        E.cy++;
-        E.cx = 0;
+        C.y++;
+        C.x = 0;
     }
     else
     {
@@ -471,50 +472,50 @@ char *editorPrompt(char *prompt)
 
 void editorMoveCursor(int key)
 {
-    erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+    erow *row = (C.y >= E.numrows) ? NULL : &E.row[C.y];
     switch (key)
     {
     case ARROW_LEFT:
-        if (E.cx != 0)
+        if (C.x != 0)
         {
-            E.cx--;
+            C.x--;
         }
-        else if (E.cy > 0 && E.cx == 0)
+        else if (C.y > 0 && C.x == 0)
         {
-            E.cy--;
-            E.cx = E.row[E.cy].size;
+            C.y--;
+            C.x = E.row[C.y].size;
         }
         break;
     case ARROW_RIGHT:
-        if (row && E.cx < row->size)
+        if (row && C.x < row->size)
         {
-            E.cx++;
+            C.x++;
         }
-        else if (row && E.cx == row->size && E.cy != E.numrows - 1)
+        else if (row && C.x == row->size && C.y != E.numrows - 1)
         {
-            E.cy++;
-            E.cx = 0;
+            C.y++;
+            C.x = 0;
         }
         break;
     case ARROW_UP:
-        if (E.cy != 0)
+        if (C.y != 0)
         {
-            E.cy--;
+            C.y--;
         }
         break;
     case ARROW_DOWN:
-        if (E.cy < E.numrows - 1)
+        if (C.y < E.numrows - 1)
         {
-            E.cy++;
+            C.y++;
         }
         break;
     }
 
-    row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+    row = (C.y >= E.numrows) ? NULL : &E.row[C.y];
     int rowlen = row ? row->size : 0;
-    if (E.cx > rowlen)
+    if (C.x > rowlen)
     {
-        E.cx = rowlen;
+        C.x = rowlen;
     }
 }
 
@@ -542,11 +543,11 @@ void editorProcessKeypress()
         editorSave();
         break;
     case HOME_KEY:
-        E.cx = 0;
+        C.x = 0;
         break;
     case END_KEY:
-        if (E.cy < E.numrows)
-            E.cx = E.row[E.cy].size;
+        if (C.y < E.numrows)
+            C.x = E.row[C.y].size;
         break;
     case BACKSPACE:
     case CTRL_KEY('h'):
@@ -560,13 +561,13 @@ void editorProcessKeypress()
     {
         if (c == PAGE_UP)
         {
-            E.cy = E.rowoff;
+            C.y = E.rowoff;
         }
         else if (c == PAGE_DOWN)
         {
-            E.cy = E.rowoff + E.screenrows - 1;
-            if (E.cy > E.numrows)
-                E.cy = E.numrows - 1;
+            C.y = E.rowoff + E.screenrows - 1;
+            if (C.y > E.numrows)
+                C.y = E.numrows - 1;
         }
         int times = E.screenrows;
         while (times--)
@@ -592,26 +593,26 @@ void editorProcessKeypress()
 /* output */
 void editorScroll()
 {
-    E.rx = 0;
-    if (E.cy < E.numrows)
+    C.rx = 0;
+    if (C.y < E.numrows)
     {
-        E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
+        C.rx = editorRowCxToRx(&E.row[C.y], C.x);
     }
-    if (E.cy < E.rowoff)
+    if (C.y < E.rowoff)
     {
-        E.rowoff = E.cy;
+        E.rowoff = C.y;
     }
-    if (E.cy >= E.rowoff + E.screenrows)
+    if (C.y >= E.rowoff + E.screenrows)
     {
-        E.rowoff = E.cy - E.screenrows + 1;
+        E.rowoff = C.y - E.screenrows + 1;
     }
-    if (E.rx < E.coloff)
+    if (C.rx < E.coloff)
     {
-        E.coloff = E.rx;
+        E.coloff = C.rx;
     }
-    if (E.rx >= E.coloff + E.screencols)
+    if (C.rx >= E.coloff + E.screencols)
     {
-        E.coloff = E.rx - E.screencols + 1;
+        E.coloff = C.rx - E.screencols + 1;
     }
 }
 
@@ -674,7 +675,7 @@ void editorDrawStatusBar(struct abuf *ab)
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
                        E.filename ? E.filename : "[No Name]", E.numrows,
                        E.dirty ? "(modified)" : "");
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", C.y + 1, E.numrows);
     if (len > E.screencols)
         len = E.screencols;
     abAppend(ab, status, len);
@@ -719,7 +720,7 @@ void editorRefreshScreen()
     editorDrawMessageBar(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (C.y - E.rowoff) + 1, (C.rx - E.coloff) + 1);
 
     abAppend(&ab, buf, strlen(buf));
     abAppend(&ab, "\x1b[?25h", 6);
@@ -739,9 +740,9 @@ void editorSetStatusMessage(const char *fmt, ...)
 /* init */
 void initEditor()
 {
-    E.cx = 0;
-    E.cy = 0;
-    E.rx = 0;
+    C.x = 0;
+    C.y = 0;
+    C.rx = 0;
     E.rowoff = 0;
     E.coloff = 0;
     E.numrows = 0;

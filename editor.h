@@ -53,8 +53,6 @@ typedef struct erow
 
 struct editorConfig
 {
-    int cx, cy;
-    int rx;
     int rowoff;
     int coloff;
     int screenrows;
@@ -67,8 +65,13 @@ struct editorConfig
     time_t statusmsg_time;
     struct termios orig_termios;
 };
-
+struct cursorHandler{
+	int x;
+	int y;
+    int rx;
+};
 struct editorConfig E;
+struct cursorHandler C;
 
 /* terminal */
 void die(const char *s);
