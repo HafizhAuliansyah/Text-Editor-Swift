@@ -1,5 +1,9 @@
 #include "editor.h"
 
+bool isInStatus;
+struct cursorHandler C;
+struct cursorHandler stat_cursor;
+
 /* terminal */
 void die(const char *s)
 {
@@ -402,7 +406,7 @@ void editorSave()
     if (E.filename == NULL)
     {
         // Memasukkan nama file penyimpanan
-        E.filename = editorPrompt("Nama File Penyimpanan : %s (ESC to cancel)");
+        E.filename = editorPrompt("Nama File Penyimpanan : %s  (ESC untuk keluar)", 24);
         if (E.filename == NULL)
         {
             editorSetStatusMessage("GAGAL MENYIMPAN");
@@ -435,7 +439,7 @@ void editorSave()
 }
 
 /*** input ***/
-char *editorPrompt(char *prompt)
+char *editorPrompt(char *prompt, int start_cx)
 {
     // Deklarasi variabel penampung nama file, dengan size 128 bytes
     size_t name_size = 128;
@@ -443,7 +447,12 @@ char *editorPrompt(char *prompt)
 
     // Inisialisasi awal size isi, dan zero character
     size_t name_len = 0;
-    name_len[0] = '\0';
+    filename[0] = '\0';
+
+    // Pindah cursor kebawah
+    isInStatus = true;
+    stat_cursor.y = E.screenrows + 2;
+    stat_cursor.x = start_cx;
 
     while (1)
     {
@@ -457,14 +466,18 @@ char *editorPrompt(char *prompt)
         // Mini delete character handler
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
         {
-            if (name_len != 0)
+            if (name_len != 0){
                 filename[--name_len] = '\0';
+                stat_cursor.x--;
+            }
+                
         }
         // Escape, untuk keluar dari editor Prompt
         else if (c == '\x1b')
         {
             editorSetStatusMessage("");
             free(filename);
+            isInStatus = false;
             return NULL;
         }
         // Memasukkan input ke filename
@@ -476,7 +489,8 @@ char *editorPrompt(char *prompt)
                 if (name_len != 0)
                 {
                     editorSetStatusMessage("");
-                    return name_len;
+                    isInStatus = false;
+                    return filename;
                 }
             }
             // Jika input bukan control character, masukkan input ke filename
@@ -491,6 +505,7 @@ char *editorPrompt(char *prompt)
                 // Mengisi filename
                 filename[name_len++] = c;
                 filename[name_len] = '\0';
+                stat_cursor.x++;
             }
         }
     }
@@ -764,7 +779,9 @@ void editorRefreshScreen()
     editorDrawMessageBar(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (C.y - E.rowoff) + 1, (C.rx - E.coloff) + 1);
+    int y = isInStatus ? stat_cursor.y + 1 : (C.y - E.rowoff) + 1;
+    int x = isInStatus ? stat_cursor.x + 1 : (C.rx - E.coloff) + 1;
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", y, x);
 
     abAppend(&ab, buf, strlen(buf));
     abAppend(&ab, "\x1b[?25h", 6);
@@ -798,10 +815,11 @@ void initEditor()
     if (getWindowSize(&E.screenrows, &E.screencols) == -1)
         die("getWindowSize");
     E.screenrows -= 2;
+    isInStatus = false;
 }
 /** Find **/
 void editorFind() {
-	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)");
+	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)", 9 );
 	if (query == NULL) return;
 	
 	int i;

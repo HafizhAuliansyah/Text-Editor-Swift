@@ -17,6 +17,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #include "buffer.h"
 /* define */
@@ -71,7 +72,6 @@ struct cursorHandler{
     int rx;
 };
 struct editorConfig E;
-struct cursorHandler C;
 
 /* terminal */
 void die(const char *s);
@@ -135,7 +135,7 @@ void editorSave();
 void editorFind();
 
 /*** input ***/
-char *editorPrompt(char *prompt);
+char *editorPrompt(char *prompt, int start_cx);
 
 void editorMoveCursor(int key);
 
