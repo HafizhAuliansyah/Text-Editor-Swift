@@ -291,7 +291,7 @@ void editorInsertChar(int c)
     }
     else
     {
-        editorSetStatusMessage("MAX COLUMN REACHED");
+        editorSetStatusMessage("PERINGATAN ! MENCAPAI BATAS KOLOM");
     }
 }
 
@@ -319,7 +319,7 @@ void editorDelChar()
         }
         else
         {
-            editorSetStatusMessage("CANNOT ERASE");
+            editorSetStatusMessage("PERINGATAN ! TIDAK BISA MENGHAPUS, KOLOM TIDAK MEMADAI");
             C.x = E.row[C.y].size;
         }
     }
@@ -347,7 +347,7 @@ void editorInsertNewline()
     }
     else
     {
-        editorSetStatusMessage("MAX ROW REACHED !!!");
+        editorSetStatusMessage("PERINGATAN ! MENCAPAI BATAS BARIS");
     }
 }
 
@@ -401,10 +401,11 @@ void editorSave()
     // Jika argumen filename kosong
     if (E.filename == NULL)
     {
-        E.filename = editorPrompt("Save : %s (ESC to cancel)");
+        // Memasukkan nama file penyimpanan
+        E.filename = editorPrompt("Nama File Penyimpanan : %s (ESC to cancel)");
         if (E.filename == NULL)
         {
-            editorSetStatusMessage("Failed to save");
+            editorSetStatusMessage("GAGAL MENYIMPAN");
             return;
         }
     }
@@ -436,48 +437,60 @@ void editorSave()
 /*** input ***/
 char *editorPrompt(char *prompt)
 {
-    size_t bufsize = 128;
-    char *buf = malloc(bufsize);
+    // Deklarasi variabel penampung nama file, dengan size 128 bytes
+    size_t name_size = 128;
+    char *filename = malloc(name_size);
 
-    size_t buflen = 0;
-    buf[0] = '\0';
+    // Inisialisasi awal size isi, dan zero character
+    size_t name_len = 0;
+    name_len[0] = '\0';
 
     while (1)
     {
-        editorSetStatusMessage(prompt, buf);
+        // Membuka status bar, untuk menerima input ke filename
+        editorSetStatusMessage(prompt, filename);
         editorRefreshScreen();
 
+        // Membaca input untuk mengisi file name
         int c = editorReadKey();
+
+        // Mini delete character handler
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
         {
-            if (buflen != 0)
-                buf[--buflen] = '\0';
+            if (name_len != 0)
+                filename[--name_len] = '\0';
         }
+        // Escape, untuk keluar dari editor Prompt
         else if (c == '\x1b')
         {
             editorSetStatusMessage("");
-            free(buf);
+            free(filename);
             return NULL;
         }
+        // Memasukkan input ke filename
         else
         {
+            // Enter, untuk menghentikan input
             if (c == '\r')
             {
-                if (buflen != 0)
+                if (name_len != 0)
                 {
                     editorSetStatusMessage("");
-                    return buf;
+                    return name_len;
                 }
             }
+            // Jika input bukan control character, masukkan input ke filename
             else if (!iscntrl(c) && c < 128)
             {
-                if (buflen == bufsize - 1)
+                // Menambah size filename, ketika hampir penuh
+                if (name_len == name_size - 1)
                 {
-                    bufsize *= 2;
-                    buf = realloc(buf, bufsize);
+                    name_size *= 2;
+                    filename = realloc(filename, name_size);
                 }
-                buf[buflen++] = c;
-                buf[buflen] = '\0';
+                // Mengisi filename
+                filename[name_len++] = c;
+                filename[name_len] = '\0';
             }
         }
     }
@@ -485,16 +498,19 @@ char *editorPrompt(char *prompt)
 
 void editorMoveCursor(int key)
 {
+    // Cek apakah baris, dimana cursor berada tidak kosong
     erow *row = (C.y >= E.numrows) ? NULL : &E.row[C.y];
     switch (key)
     {
     case ARROW_LEFT:
         if (C.x != 0)
         {
+            // Memindahkan kursor ke kiri 1 kolom
             C.x--;
         }
         else if (C.y > 0 && C.x == 0)
         {
+            // Memindahkan kurosr ke baris sebelumnya, kolom terakhir
             C.y--;
             C.x = E.row[C.y].size;
         }
@@ -502,10 +518,12 @@ void editorMoveCursor(int key)
     case ARROW_RIGHT:
         if (row && C.x < row->size)
         {
+            // Memindahkan kursor ke kanan 1 kolom
             C.x++;
         }
         else if (row && C.x == row->size && C.y != E.numrows - 1)
         {
+            // Memindahkan kursor ke baris setelahnya, kolom pertama
             C.y++;
             C.x = 0;
         }
@@ -513,23 +531,27 @@ void editorMoveCursor(int key)
     case ARROW_UP:
         if (C.y != 0)
         {
+            // Memindahkan kursor turun 1 baris
             C.y--;
         }
         break;
     case ARROW_DOWN:
         if (C.y < E.numrows - 1)
         {
+            // Memindahkan kursor naik 1 baris
             C.y++;
         }
         break;
     }
 
+    // Error Handling, cursor melebihi jumlah kolom
     row = (C.y >= E.numrows) ? NULL : &E.row[C.y];
     int rowlen = row ? row->size : 0;
     if (C.x > rowlen)
     {
         C.x = rowlen;
     }
+
 }
 
 void editorProcessKeypress()
@@ -590,6 +612,7 @@ void editorProcessKeypress()
             editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
     }
     break;
+    // Arrow untuk memindahkan cursor
     case ARROW_UP:
     case ARROW_DOWN:
     case ARROW_LEFT:
@@ -609,23 +632,28 @@ void editorProcessKeypress()
 /* output */
 void editorScroll()
 {
+    // Tab Detector and Handler
     C.rx = 0;
     if (C.y < E.numrows)
     {
         C.rx = editorRowCxToRx(&E.row[C.y], C.x);
     }
+    // Pengaturan row offset ketika scroll keatas
     if (C.y < E.rowoff)
     {
         E.rowoff = C.y;
     }
+    // Pengaturan row offset ketika scroll kebawah
     if (C.y >= E.rowoff + E.screenrows)
     {
         E.rowoff = C.y - E.screenrows + 1;
     }
+    // Pengaturan coll offset ketika scroll ke kiri
     if (C.rx < E.coloff)
     {
         E.coloff = C.rx;
     }
+    // Pengaturan coll offset ketika scroll ke kanan
     if (C.rx >= E.coloff + E.screencols)
     {
         E.coloff = C.rx - E.screencols + 1;
