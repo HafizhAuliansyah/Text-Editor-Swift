@@ -3,6 +3,7 @@
 bool isInStatus;
 struct cursorHandler C;
 struct cursorHandler stat_cursor;
+struct selection selection;
 
 /* terminal */
 void die(const char *s)
@@ -573,6 +574,10 @@ void editorProcessKeypress()
 {
     static int quit_times = SWIFT_QUIT_TIMES;
     int c = editorReadKey();
+
+    // Matikan selection text
+    selection.isOn = false;
+
     switch (c)
     {
     case '\r':
@@ -720,6 +725,13 @@ void editorDrawRows(struct abuf *ab)
 
             // Konversi char ke char*
             char *c = &E.row[filerow].render[E.coloff];
+            // Select Text
+            if(filerow == selection.y && E.coloff >= selection.x && selection.isOn){
+                addSelectionText(ab, c, len);
+            }else{
+                abAppend(ab, c, len);
+            }
+            
             abAppend(ab, c, len);
         }
         abAppend(ab, "\x1b[K", 3);
@@ -829,6 +841,13 @@ void editorFind() {
 		if (match) {
 			C.y = i;
 			C.x = editorRowRxToCx(row,match - row->render);
+
+            // Untuk select text
+            selection.y = C.y;
+            selection.x = C.x;
+            selection.len = strlen(query);
+            selection.isOn = true;
+
 			E.rowoff = E.numrows;
 			break;
 		}
@@ -838,3 +857,15 @@ void editorFind() {
 	free(query);
 }
 
+void addSelectionText(struct abuf *ab, char *row, int len){
+
+    int at = 0;
+    abAppend(ab, &row[at], selection.x);
+    abAppend(ab, "\x1b[7m", 4);
+    at = selection.x;
+    abAppend(ab, &row[at], selection.len);
+    abAppend(ab, "\x1b[m", 3);
+    at = selection.x + selection.len;
+    abAppend(ab, &row[at], len - at);
+    
+}

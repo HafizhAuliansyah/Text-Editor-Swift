@@ -71,6 +71,13 @@ struct cursorHandler{
 	int y;
     int rx;
 };
+struct selection{
+    int x;
+    int y;
+    int len;
+    bool isOn;
+};
+
 struct editorConfig E;
 
 /* terminal */
@@ -131,6 +138,7 @@ char *editorRowsToString(int *buflen);
 void editorOpen(char *filename);
 
 void editorSave();
+
 /** Find **/
 void editorFind();
 
@@ -153,6 +161,8 @@ void editorDrawMessageBar(struct abuf *ab);
 void editorRefreshScreen();
 
 void editorSetStatusMessage(const char *fmt, ...);
+
+void addSelectionText(struct abuf *ab, char *row, int len);
 
 /* init */
 void initEditor();
