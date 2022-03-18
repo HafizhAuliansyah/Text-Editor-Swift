@@ -91,6 +91,9 @@ int editorRowCxToRx(erow *row, int cx);
 /* melakukan rendering pada tab berapa jarak untuk setiap ketika
 kita menekan tab */
 
+int editorRowRxToCx (erow *row,int rx);
+
+
 void editorUpdateRow(erow *row);
 /* ngatur untuk apa yang d render atau ditampilkan ke layar */
 
@@ -128,6 +131,8 @@ char *editorRowsToString(int *buflen);
 void editorOpen(char *filename);
 
 void editorSave();
+/** Find **/
+void editorFind();
 
 /*** input ***/
 char *editorPrompt(char *prompt);

@@ -166,6 +166,19 @@ int editorRowCxToRx(erow *row, int cx)
     return rx;
 }
 
+int editorRowRxToCx (erow *row,int rx) {
+	int cur_rx = 0;
+	int cx;
+	for (cx = 0; cx < row->size; cx++){
+		if (row->chars[cx] == '\t')
+			cur_rx += (SWIFT_TAB_STOP) - (cur_rx % SWIFT_TAB_STOP);
+		cur_rx++;
+		
+		if(cur_rx > rx) return cx;
+	}
+	return cx;
+}
+
 void editorUpdateRow(erow *row)
 {
     int tabs = 0;
@@ -549,6 +562,9 @@ void editorProcessKeypress()
         if (C.y < E.numrows)
             C.x = E.row[C.y].size;
         break;
+    case CTRL_KEY('f'):
+    	editorFind();
+    	break;
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DEL_KEY:
@@ -755,3 +771,24 @@ void initEditor()
         die("getWindowSize");
     E.screenrows -= 2;
 }
+/** Find **/
+void editorFind() {
+	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)");
+	if (query == NULL) return;
+	
+	int i;
+	for (i = 0; i < E.numrows; i++) {
+		erow *row = &E.row[i]; 
+		char *match = strstr(row->render, query);
+		if (match) {
+			C.y = i;
+			C.x = editorRowRxToCx(row,match - row->render);
+			E.rowoff = E.numrows;
+			break;
+		}
+		editorSetStatusMessage("String Tidak Ada!");
+	}
+	
+	free(query);
+}
+
