@@ -17,6 +17,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #include "buffer.h"
 /* define */
@@ -70,8 +71,14 @@ struct cursorHandler{
 	int y;
     int rx;
 };
+struct selection{
+    int x;
+    int y;
+    int len;
+    bool isOn;
+};
+
 struct editorConfig E;
-struct cursorHandler C;
 
 /* terminal */
 void die(const char *s);
@@ -131,11 +138,12 @@ char *editorRowsToString(int *buflen);
 void editorOpen(char *filename);
 
 void editorSave();
+
 /** Find **/
 void editorFind();
 
 /*** input ***/
-char *editorPrompt(char *prompt);
+char *editorPrompt(char *prompt, int start_cx);
 
 void editorMoveCursor(int key);
 
@@ -153,6 +161,8 @@ void editorDrawMessageBar(struct abuf *ab);
 void editorRefreshScreen();
 
 void editorSetStatusMessage(const char *fmt, ...);
+
+void addSelectionText(struct abuf *ab, char *row, int len);
 
 /* init */
 void initEditor();
