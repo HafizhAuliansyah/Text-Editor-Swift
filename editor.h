@@ -23,7 +23,7 @@
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_TAB_STOP 8
 #define SWIFT_VERSION "0.0.1"
-#define SWIFT_QUIT_TIMES 3
+#define SWIFT_QUIT_TIMES 1
 
 #define MAX_COLUMN 10
 #define MAX_ROW 10
