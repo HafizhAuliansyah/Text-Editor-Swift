@@ -727,7 +727,7 @@ void editorDrawRows(struct abuf *ab)
             char *c = &E.row[filerow].render[E.coloff];
 
             // Select Text
-            if(filerow == selection.y && E.coloff >= selection.x && selection.isOn){
+            if(filerow == selection.y && E.coloff <= selection.x && selection.isOn){
                 addSelectionText(ab, c, len);
             }else{
                 abAppend(ab, c, len);
