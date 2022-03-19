@@ -847,8 +847,11 @@ void editorFind() {
             selection.x = C.x;
             selection.len = strlen(query);
             selection.isOn = true;
-
-			E.rowoff = E.numrows;
+            
+            if(i >= E.screenrows){
+                E.rowoff = C.y;
+            }
+            
 			ketemu = 0;
 			break;
 		}
