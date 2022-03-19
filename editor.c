@@ -775,7 +775,7 @@ void initEditor()
 void editorFind() {
 	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)");
 	if (query == NULL) return;
-	
+	int ketemu = 1;
 	int i;
 	for (i = 0; i < E.numrows; i++) {
 		erow *row = &E.row[i]; 
@@ -784,9 +784,13 @@ void editorFind() {
 			C.y = i;
 			C.x = editorRowRxToCx(row,match - row->render);
 			E.rowoff = E.numrows;
+			ketemu = 0;
 			break;
 		}
-		editorSetStatusMessage("String Tidak Ada!");
+		
+	}
+	if(ketemu){
+		editorSetStatusMessage("String Tidak Ada!");	
 	}
 	
 	free(query);
