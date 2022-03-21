@@ -20,6 +20,8 @@
 #include <stdbool.h>
 
 #include "buffer.h"
+#include "text_operation.h"
+
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_TAB_STOP 8
@@ -70,12 +72,6 @@ struct cursorHandler{
 	int x;
 	int y;
     int rx;
-};
-struct selection{
-    int x;
-    int y;
-    int len;
-    bool isOn;
 };
 
 struct editorConfig E;
@@ -161,8 +157,6 @@ void editorDrawMessageBar(struct abuf *ab);
 void editorRefreshScreen();
 
 void editorSetStatusMessage(const char *fmt, ...);
-
-void addSelectionText(struct abuf *ab, char *row, int len);
 
 /* init */
 void initEditor();
