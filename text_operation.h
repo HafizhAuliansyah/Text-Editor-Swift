@@ -1,6 +1,7 @@
 #ifndef text_op_h
 #define text_op_h
 #include "buffer.h"
+#include "editor.h"
 #include <stdbool.h>
 
 struct selection{
@@ -12,5 +13,7 @@ struct selection{
 struct selection selection;
 
 void addSelectionText(struct abuf *ab, char *row, int len);
+void clearSelected(struct selection *s);
+void copy(erow row[]);
 
 #endif

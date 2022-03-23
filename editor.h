@@ -19,7 +19,6 @@
 #include <stdarg.h>
 
 #include "buffer.h"
-#include "text_operation.h"
 
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
@@ -52,6 +51,8 @@ typedef struct erow
     char chars[MAX_COLUMN];
     char render[MAX_COLUMN];
 } erow;
+
+#include "text_operation.h"
 
 struct editorConfig
 {

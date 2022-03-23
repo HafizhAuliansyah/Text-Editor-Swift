@@ -572,11 +572,9 @@ void editorMoveCursor(int key)
 
 void editorProcessKeypress()
 {
+    bool afterSearch = false;
     static int quit_times = SWIFT_QUIT_TIMES;
     int c = editorReadKey();
-
-    // Matikan selection text
-    selection.isOn = false;
 
     switch (c)
     {
@@ -606,6 +604,7 @@ void editorProcessKeypress()
         break;
     case CTRL_KEY('f'):
     	editorFind();
+        afterSearch = true;
     	break;
     case BACKSPACE:
     case CTRL_KEY('h'):
@@ -641,6 +640,9 @@ void editorProcessKeypress()
     case ARROW_RIGHT:
         editorMoveCursor(c);
         break;
+    case CTRL_KEY('c'):
+        copy(E.row);
+        break;
     case CTRL_KEY('l'):
     case '\x1b':
         break;
@@ -648,6 +650,9 @@ void editorProcessKeypress()
         editorInsertChar(c);
         break;
     }
+    if(!afterSearch)
+        // Matikan selection text
+         clearSelected(&selection);
     quit_times = SWIFT_QUIT_TIMES;
 }
 
@@ -833,7 +838,7 @@ void initEditor()
 }
 /** Find **/
 void editorFind() {
-	char *query = editorPrompt("Cari : %s (Tekan ESC Untuk Batalkan)", 9 );
+	char *query = editorPrompt("Cari : %s (Tekan ESC Untuk Batalkan)", 7 );
 	if (query == NULL) return;
 	int ketemu = 1;
 	int i;
