@@ -3,7 +3,7 @@
 bool isInStatus;
 struct cursorHandler C;
 struct cursorHandler stat_cursor;
-struct selection selection;
+
 
 /* terminal */
 void die(const char *s)
@@ -429,14 +429,14 @@ void editorSave()
                 close(fd);
                 free(buf);
                 E.dirty = 0;
-                editorSetStatusMessage("%d bytes saved to disk", len);
+                editorSetStatusMessage("%d bytes disimpan", len);
                 return;
             }
         }
         close(fd);
     }
     free(buf);
-    editorSetStatusMessage("Error saving file: %s", strerror(errno));
+    editorSetStatusMessage("Error menyimpan : %s", strerror(errno));
 }
 
 /*** input ***/
@@ -586,7 +586,7 @@ void editorProcessKeypress()
     case CTRL_KEY('q'):
         if (E.dirty && quit_times > 0)
         {
-            editorSetStatusMessage("WARNING !! File has unsaved changes. Press Ctrl-Q %d more times to quit", quit_times);
+            editorSetStatusMessage("PERINGATAN !! FILE BELUM DISIMPAN TEKAN Ctrl + s UNTUK SIMPAN, Ctrl + q UNTUK KELUAR", quit_times);
             quit_times--;
             return;
         }
@@ -619,10 +619,12 @@ void editorProcessKeypress()
     {
         if (c == PAGE_UP)
         {
+            // Pindah ke baris paling atas di layar
             C.y = E.rowoff;
         }
         else if (c == PAGE_DOWN)
         {
+            // Pindah ke baris paling bawah di layar
             C.y = E.rowoff + E.screenrows - 1;
             if (C.y > E.numrows)
                 C.y = E.numrows - 1;
@@ -743,8 +745,8 @@ void editorDrawStatusBar(struct abuf *ab)
 {
     abAppend(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
-    int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       E.filename ? E.filename : "[No Name]", E.numrows,
+    int len = snprintf(status, sizeof(status), "%.20s - %d baris %s",
+                       E.filename ? E.filename : "[File Kosong]", E.numrows,
                        E.dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", C.y + 1, E.numrows);
     if (len > E.screencols)
@@ -831,7 +833,7 @@ void initEditor()
 }
 /** Find **/
 void editorFind() {
-	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)", 9 );
+	char *query = editorPrompt("Cari : %s (Tekan ESC Untuk Batalkan)", 9 );
 	if (query == NULL) return;
 	int ketemu = 1;
 	int i;

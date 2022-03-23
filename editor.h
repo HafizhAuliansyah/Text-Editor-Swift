@@ -17,7 +17,6 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
-#include <stdbool.h>
 
 #include "buffer.h"
 #include "text_operation.h"
