@@ -15,5 +15,8 @@ struct selection selection;
 void addSelectionText(struct abuf *ab, char *row, int len);
 void clearSelected(struct selection *s);
 void copy(erow row[]);
+void paste();
+void selectShift(struct selection dest);
+void selectMoveCursor(int c);
 
 #endif

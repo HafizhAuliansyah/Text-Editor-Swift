@@ -21,7 +21,7 @@
 #include "buffer.h"
 
 /* define */
-#define CTRL_KEY(k) ((k)&0x1f)
+#define CTRL_KEY(k) ((k) &0x1f)
 #define SWIFT_TAB_STOP 8
 #define SWIFT_VERSION "0.0.1"
 #define SWIFT_QUIT_TIMES 1
@@ -40,7 +40,12 @@ enum editorKey
     HOME_KEY,
     END_KEY,
     PAGE_UP,
-    PAGE_DOWN
+    PAGE_DOWN,
+    // Shift + Key
+    SHIFT_ARROW_LEFT,
+    SHIFT_ARROW_RIGHT,
+    SHIFT_ARROW_UP,
+    SHIFT_ARROW_DOWN,
 };
 
 /* data */
@@ -52,7 +57,7 @@ typedef struct erow
     char render[MAX_COLUMN];
 } erow;
 
-#include "text_operation.h"
+
 
 struct editorConfig
 {
@@ -75,6 +80,9 @@ struct cursorHandler{
 };
 
 struct editorConfig E;
+struct cursorHandler C;
+struct cursorHandler stat_cursor;
+#include "text_operation.h"
 
 /* terminal */
 void die(const char *s);
@@ -95,7 +103,6 @@ int editorRowCxToRx(erow *row, int cx);
 kita menekan tab */
 
 int editorRowRxToCx (erow *row,int rx);
-
 
 void editorUpdateRow(erow *row);
 /* ngatur untuk apa yang d render atau ditampilkan ke layar */
