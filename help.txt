@@ -1,0 +1,27 @@
+========================================================
+                         HELP
+========================================================
+Text Editor Swift 
+Versi 0.0.1
+Dibuat Oleh Kelompok Swift
+Yang Beranggotakan
+- Jundiy Muhammad Alfatih - 211511041
+- Muhammad Hafizh Auliansyah - 211511047
+- Muhammad Rizki Halomoan - 211511049
+- Miftah Faiz Hartanto - 211511042
+- Panji Judha Fadhilla- 211511053
+
+
+Tentang Text Editor Swift
+Text Editor Swift adalah software berbasis console yang berfungsi untuk 
+membuka, melihat, dan mengedit file plain text atau teks biasa.
+
+
+Perintah
+Pilih : shift + arrow
+Salin : ctrl + c
+Tempel : ctrl + v
+Cari : ctrl + f
+Simpan : ctrl + s
+Keluar : ctrl + q
+Bantuan : ctrl + h
