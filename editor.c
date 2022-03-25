@@ -439,7 +439,7 @@ void editorSave()
     free(buf);
     editorSetStatusMessage("Error saving file: %s", strerror(errno));
 }
-char **openHelp(){
+char **openHelp(int *help_len){
     FILE *fp = fopen("help.txt", "r");
     if (!fp)
         die("fopen");
@@ -462,6 +462,7 @@ char **openHelp(){
     }
     free(line);
     fclose(fp);
+    *help_len = x;
     return isi_file;
 }
 
@@ -669,6 +670,10 @@ void editorProcessKeypress()
     	break;
     case CTRL_KEY('l'):
     case '\x1b':
+        {
+            if(isInHelp)
+                isInHelp = false;
+        }
         break;
     default:
         editorInsertChar(c);
@@ -712,15 +717,16 @@ void editorDrawRows(struct abuf *ab)
 {
     int y;
     char **help = NULL;
+    int help_len;
     if(isInHelp){
-        help = openHelp();
+        help = openHelp(&help_len);
     }
     
     for (y = 0; y < E.screenrows; y++)
     {
         int filerow = y + E.rowoff;
         if(isInHelp){
-            if(filerow <= 26){
+            if(filerow < help_len){
                 int len = strlen(help[filerow]) - E.coloff;
                 abAppend(ab, help[filerow], len);
             }

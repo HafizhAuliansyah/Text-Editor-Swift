@@ -139,7 +139,7 @@ void editorOpen(char *filename);
 
 void editorSave();
 
-char **openHelp();
+char **openHelp(int *help_len);
 
 /** Find **/
 void editorFind();
