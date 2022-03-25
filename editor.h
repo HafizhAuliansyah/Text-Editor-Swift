@@ -139,6 +139,8 @@ void editorOpen(char *filename);
 
 void editorSave();
 
+char **openHelp();
+
 /** Find **/
 void editorFind();
 
