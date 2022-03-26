@@ -216,16 +216,9 @@ void editorUpdateRow(erow *row)
 
 void editorInsertRow(int at, char *s, size_t len)
 {
-    if (at < 0 || at > E.numrows)
-        return;
-
     if (E.numrows >= MAX_ROW)
         return;
-
-    // erow *dest = &E.row[at + 1];
-    // erow *src = &E.row[at];
     memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
-
     E.row[at].size = len;
     memcpy(&E.row[at].chars, s, len);
     E.row[at].chars[len] = '\0';
@@ -288,7 +281,6 @@ void editorRowDelChar(erow *row, int at)
 /*** editor operations ***/
 void editorInsertChar(int c)
 {
-
     if (C.y == E.numrows)
     {
         editorInsertRow(E.numrows, "", 0);
@@ -658,7 +650,7 @@ void editorProcessKeypress()
     case '\x1b':
         break;
     default:
-        if (c > 26)
+        if (c > 26 || c == 9)
         {
             editorInsertChar(c);
         }
