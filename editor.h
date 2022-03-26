@@ -113,23 +113,23 @@ void editorInsertRow(int at, char *s, size_t len);
 /* nge dealloc di memory sebesar erow*/
 
 void editorDelRow(int at);
-/* kayak editordelchar tapi ini ma kalau di awal row*/
+/* Untuk menghapus row, jika row setelah ada isinya maka akan naik ke row yang dihapus*/
 
 void editorRowInsertChar(erow *row, int at, int c);
-/* menambahkan karakter to posisi cursor */
+/* menambahkan karakter to posisi cursor dalam row */
 
 void editorRowAppendString(erow *row, char *s, size_t len);
-/* menambahkan row ke row baru setelah dihapus biasanya*/
+/* menambahkan isi chars ke sebuah row*/
 
 void editorRowDelChar(erow *row, int at);
 /* menghapus 1 karakter posisi cursor*/
 
 /*** editor operations ***/
 void editorInsertChar(int c);
-/* menambahkan satu karakter dari inputan lalu akan manggil editorrow insert char untuk dimasukan dalam row*/
+/* menambahkan 1 karakter*/
 
 void editorDelChar();
-/* menghapus 1 karakter lalu manggil editrRowDelChar */
+/* module untuk menghapus karakter */
 
 void editorInsertNewline();
 /* handle enter*/

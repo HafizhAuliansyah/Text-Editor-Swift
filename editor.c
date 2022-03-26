@@ -281,6 +281,7 @@ void editorRowDelChar(erow *row, int at)
 /*** editor operations ***/
 void editorInsertChar(int c)
 {
+    // editorSetStatusMessage(E.row->render);
     if (C.y == E.numrows)
     {
         editorInsertRow(E.numrows, "", 0);
@@ -310,11 +311,9 @@ void editorInsertChar(int c)
 
 void editorDelChar()
 {
-    if (C.y == E.numrows)
-        return;
+
     if (C.x == 0 && C.y == 0)
         return;
-
     // erow *row = ;
     if (C.x > 0)
     {
