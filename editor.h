@@ -66,12 +66,15 @@ struct editorConfig
     time_t statusmsg_time;
     struct termios orig_termios;
 };
-struct cursorHandler{
-	int x;
-	int y;
+
+struct cursorHandler
+{
+    int x;
+    int y;
     int rx;
 };
-struct selection{
+struct selection
+{
     int x;
     int y;
     int len;
@@ -98,8 +101,7 @@ int editorRowCxToRx(erow *row, int cx);
 /* melakukan rendering pada tab berapa jarak untuk setiap ketika
 kita menekan tab */
 
-int editorRowRxToCx (erow *row,int rx);
-
+int editorRowRxToCx(erow *row, int rx);
 
 void editorUpdateRow(erow *row);
 /* ngatur untuk apa yang d render atau ditampilkan ke layar */

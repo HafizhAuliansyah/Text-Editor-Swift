@@ -171,17 +171,20 @@ int editorRowCxToRx(erow *row, int cx)
     return rx;
 }
 
-int editorRowRxToCx (erow *row,int rx) {
-	int cur_rx = 0;
-	int cx;
-	for (cx = 0; cx < row->size; cx++){
-		if (row->chars[cx] == '\t')
-			cur_rx += (SWIFT_TAB_STOP) - (cur_rx % SWIFT_TAB_STOP);
-		cur_rx++;
-		
-		if(cur_rx > rx) return cx;
-	}
-	return cx;
+int editorRowRxToCx(erow *row, int rx)
+{
+    int cur_rx = 0;
+    int cx;
+    for (cx = 0; cx < row->size; cx++)
+    {
+        if (row->chars[cx] == '\t')
+            cur_rx += (SWIFT_TAB_STOP) - (cur_rx % SWIFT_TAB_STOP);
+        cur_rx++;
+
+        if (cur_rx > rx)
+            return cx;
+    }
+    return cx;
 }
 
 void editorUpdateRow(erow *row)
@@ -242,8 +245,8 @@ void editorInsertRow(int at, char *s, size_t len)
 
 void editorDelRow(int at)
 {
-    if (at < 0 || at >= E.numrows)
-        return;
+    // if (at < 0 || at >= E.numrows)
+    //     return;
     // editorFreeRow(&E.row[at]);
     memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
     E.numrows--;
@@ -252,11 +255,11 @@ void editorDelRow(int at)
 
 void editorRowInsertChar(erow *row, int at, int c)
 {
-    if (at < 0 || at > row->size)
-        at = row->size;
-    char *dest = row->chars;
-    char *src = row->chars;
-    memmove(dest + at + 1, src + at, row->size - at + 1);
+    // if (at < 0 || at > row->size)
+    //     at = row->size;
+    // char *dest = row->chars;
+    // char *src = row->chars;
+    memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
     row->size++;
     row->chars[at] = c;
     editorUpdateRow(&(*row));
@@ -274,8 +277,8 @@ void editorRowAppendString(erow *row, char *s, size_t len)
 
 void editorRowDelChar(erow *row, int at)
 {
-    if (at < 0 || at >= row->size)
-        return;
+    // if (at < 0 || at >= row->size)
+    //     return;
     memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
     row->size--;
     editorUpdateRow(row);
@@ -285,10 +288,12 @@ void editorRowDelChar(erow *row, int at)
 /*** editor operations ***/
 void editorInsertChar(int c)
 {
+
     if (C.y == E.numrows)
     {
         editorInsertRow(E.numrows, "", 0);
     }
+
     if (E.row[C.y].size < MAX_COLUMN)
     {
         editorRowInsertChar(&E.row[C.y], C.x, c);
@@ -296,7 +301,18 @@ void editorInsertChar(int c)
     }
     else
     {
-        editorSetStatusMessage("PERINGATAN ! MENCAPAI BATAS KOLOM");
+        editorSetStatusMessage("PERINGATAN ! MENCAPAI BATAS COLUMN");
+        // if (E.numrows < MAX_ROW)
+        // {
+        //     editorInsertRow(C.y + 1, "", 0);
+        //     C.y++;
+        //     C.x = 0;
+        //     editorInsertChar(c);
+        // }
+        // else
+        // {
+        //     editorSetStatusMessage("PERINGATAN ! MENCAPAI BATAS ROW");
+        // }
     }
 }
 
@@ -467,11 +483,11 @@ char *editorPrompt(char *prompt, int start_cx)
         // Mini delete character handler
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
         {
-            if (name_len != 0){
+            if (name_len != 0)
+            {
                 filename[--name_len] = '\0';
                 stat_cursor.x--;
             }
-                
         }
         // Escape, untuk keluar dari editor Prompt
         else if (c == '\x1b')
@@ -567,7 +583,6 @@ void editorMoveCursor(int key)
     {
         C.x = rowlen;
     }
-
 }
 
 void editorProcessKeypress()
@@ -605,8 +620,8 @@ void editorProcessKeypress()
             C.x = E.row[C.y].size;
         break;
     case CTRL_KEY('f'):
-    	editorFind();
-    	break;
+        editorFind();
+        break;
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DEL_KEY:
@@ -643,7 +658,10 @@ void editorProcessKeypress()
     case '\x1b':
         break;
     default:
-        editorInsertChar(c);
+        if (c > 26)
+        {
+            editorInsertChar(c);
+        }
         break;
     }
     quit_times = SWIFT_QUIT_TIMES;
@@ -727,12 +745,14 @@ void editorDrawRows(struct abuf *ab)
             char *c = &E.row[filerow].render[E.coloff];
 
             // Select Text
-            if(filerow == selection.y && E.coloff <= selection.x && selection.isOn){
+            if (filerow == selection.y && E.coloff <= selection.x && selection.isOn)
+            {
                 addSelectionText(ab, c, len);
-            }else{
+            }
+            else
+            {
                 abAppend(ab, c, len);
             }
-            
         }
         abAppend(ab, "\x1b[K", 3);
         abAppend(ab, "\r\n", 2);
@@ -830,41 +850,47 @@ void initEditor()
     isInStatus = false;
 }
 /** Find **/
-void editorFind() {
-	char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)", 9 );
-	if (query == NULL) return;
-	int ketemu = 1;
-	int i;
-	for (i = 0; i < E.numrows; i++) {
-		erow *row = &E.row[i]; 
-		char *match = strstr(row->render, query);
-		if (match) {
-			C.y = i;
-			C.x = editorRowRxToCx(row,match - row->render);
+void editorFind()
+{
+    char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)", 9);
+    if (query == NULL)
+        return;
+    int ketemu = 1;
+    int i;
+    for (i = 0; i < E.numrows; i++)
+    {
+        erow *row = &E.row[i];
+        char *match = strstr(row->render, query);
+        if (match)
+        {
+            C.y = i;
+            C.x = editorRowRxToCx(row, match - row->render);
 
             // Untuk select text
             selection.y = C.y;
             selection.x = C.x;
             selection.len = strlen(query);
             selection.isOn = true;
-            
-            if(i >= E.screenrows){
+
+            if (i >= E.screenrows)
+            {
                 E.rowoff = C.y;
             }
-            
-			ketemu = 0;
-			break;
-		}
-		
-	}
-	if(ketemu){
-		editorSetStatusMessage("String Tidak Ada!");	
-	}
-	
-	free(query);
+
+            ketemu = 0;
+            break;
+        }
+    }
+    if (ketemu)
+    {
+        editorSetStatusMessage("String Tidak Ada!");
+    }
+
+    free(query);
 }
 
-void addSelectionText(struct abuf *ab, char *row, int len){
+void addSelectionText(struct abuf *ab, char *row, int len)
+{
     // var at, sebagai penampung koordinat kolom
     int at = 0;
     // Memasukkan kolom sebelum kata terselect ke ab
@@ -877,5 +903,4 @@ void addSelectionText(struct abuf *ab, char *row, int len){
     // Memasukkan kolom setelah kata terselect ke ab
     at = selection.x + selection.len;
     abAppend(ab, &row[at], len - at);
-    
 }
