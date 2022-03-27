@@ -48,8 +48,8 @@ typedef struct erow
 {
     int size;
     int rsize;
-    char chars[MAX_COLUMN];
-    char render[MAX_COLUMN];
+    char chars[MAX_COLUMN + 1];
+    char render[MAX_COLUMN + 1];
 } erow;
 
 struct editorConfig
@@ -59,7 +59,7 @@ struct editorConfig
     int screenrows;
     int screencols;
     int numrows;
-    erow row[MAX_ROW];
+    erow row[MAX_ROW + 1];
     int dirty;
     char *filename;
     char statusmsg[80];
