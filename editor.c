@@ -1,6 +1,7 @@
 #include "editor.h"
 
 bool isInStatus;
+bool isInHelp;
 struct cursorHandler C;
 struct cursorHandler stat_cursor;
 struct selection selection;
@@ -445,6 +446,33 @@ void editorSave()
     free(buf);
     editorSetStatusMessage("Error saving file: %s", strerror(errno));
 }
+char **openHelp(int *help_len)
+{
+    FILE *fp = fopen("help.txt", "r");
+    if (!fp)
+        die("fopen");
+
+    char **isi_file = NULL;
+    char *line = NULL;
+    size_t linecap = 0;
+    ssize_t linelen;
+    int x = 0;
+    while ((linelen = getline(&line, &linecap, fp)) != -1)
+    {
+        while (linelen > 0 && (line[linelen - 1] == '\n') || line[linelen - 1] == '\r')
+            linelen--;
+
+        isi_file = realloc(isi_file, sizeof(char **) * (x + 1));
+        isi_file[x] = malloc(linelen + 1);
+        memcpy(isi_file[x], line, linelen);
+        isi_file[x][linelen] = '\0';
+        x++;
+    }
+    free(line);
+    fclose(fp);
+    *help_len = x;
+    return isi_file;
+}
 
 /*** input ***/
 char *editorPrompt(char *prompt, int start_cx)
@@ -614,7 +642,6 @@ void editorProcessKeypress()
         editorFind();
         break;
     case BACKSPACE:
-    case CTRL_KEY('h'):
     case DEL_KEY:
         if (c == DEL_KEY)
             editorMoveCursor(ARROW_RIGHT);
@@ -645,9 +672,16 @@ void editorProcessKeypress()
     case ARROW_RIGHT:
         editorMoveCursor(c);
         break;
+    case CTRL_KEY('h'):
+        isInHelp = true;
+        break;
     case CTRL_KEY('l'):
     case '\x1b':
-        break;
+    {
+        if (isInHelp)
+            isInHelp = false;
+    }
+    break;
     default:
         if (c > 26 || c == 9)
         {
@@ -692,62 +726,81 @@ void editorScroll()
 void editorDrawRows(struct abuf *ab)
 {
     int y;
+    char **help = NULL;
+    int help_len;
+    if (isInHelp)
+    {
+        help = openHelp(&help_len);
+    }
+
     for (y = 0; y < E.screenrows; y++)
     {
         int filerow = y + E.rowoff;
-        if (filerow >= E.numrows)
+        if (isInHelp)
         {
-            if (E.numrows == 0 && y == MAX_ROW / 2)
+            if (filerow < help_len)
             {
-                char welcome[80];
-                int welcomelen = snprintf(welcome, sizeof(welcome), "Swift editor -- version %s", SWIFT_VERSION);
-                if (welcomelen > E.screencols)
-                    welcomelen = E.screencols;
-                int padding = (E.screencols - welcomelen) / 2;
-                if (padding)
+                int len = strlen(help[filerow]) - E.coloff;
+                abAppend(ab, help[filerow], len);
+            }
+        }
+        else
+        {
+            if (filerow >= E.numrows)
+            {
+                if (E.numrows == 0 && y == MAX_ROW / 2)
+                {
+                    char welcome[80];
+                    int welcomelen = snprintf(welcome, sizeof(welcome), "Swift editor -- version %s", SWIFT_VERSION);
+                    if (welcomelen > E.screencols)
+                        welcomelen = E.screencols;
+                    int padding = (E.screencols - welcomelen) / 2;
+                    if (padding)
+                    {
+                        if (y < MAX_ROW)
+                        {
+                            abAppend(ab, "~", 1);
+                        }
+                        padding--;
+                    }
+                    while (padding--)
+                        abAppend(ab, " ", 1);
+                    abAppend(ab, welcome, welcomelen);
+                }
+                else
                 {
                     if (y < MAX_ROW)
                     {
                         abAppend(ab, "~", 1);
                     }
-                    padding--;
                 }
-                while (padding--)
-                    abAppend(ab, " ", 1);
-                abAppend(ab, welcome, welcomelen);
             }
             else
             {
-                if (y < MAX_ROW)
+                int len = E.row[filerow].rsize - E.coloff;
+                if (len < 0)
+                    len = 0;
+                if (len > E.screencols)
+                    len = E.screencols;
+
+                // Konversi char ke char*
+                char *c = &E.row[filerow].render[E.coloff];
+
+                // Select Text
+                if (filerow == selection.y && E.coloff <= selection.x && selection.isOn)
                 {
-                    abAppend(ab, "~", 1);
+                    addSelectionText(ab, c, len);
                 }
-            }
-        }
-        else
-        {
-            int len = E.row[filerow].rsize - E.coloff;
-            if (len < 0)
-                len = 0;
-            if (len > E.screencols)
-                len = E.screencols;
-
-            // Konversi char ke char*
-            char *c = &E.row[filerow].render[E.coloff];
-
-            // Select Text
-            if (filerow == selection.y && E.coloff <= selection.x && selection.isOn)
-            {
-                addSelectionText(ab, c, len);
-            }
-            else
-            {
-                abAppend(ab, c, len);
+                else
+                {
+                    abAppend(ab, c, len);
+                }
             }
         }
         abAppend(ab, "\x1b[K", 3);
         abAppend(ab, "\r\n", 2);
     }
+    free(help);
 }
 
 void editorDrawStatusBar(struct abuf *ab)
