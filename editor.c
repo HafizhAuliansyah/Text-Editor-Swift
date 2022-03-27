@@ -1,7 +1,7 @@
 #include "editor.h"
 
 bool isInStatus;
-bool isInHelp;
+bool isInHelp = false;
 struct cursorHandler C;
 struct cursorHandler stat_cursor;
 struct selection selection;
@@ -628,6 +628,7 @@ void editorProcessKeypress()
 {
     bool skipClearSelect = false;
     static int quit_times = SWIFT_QUIT_TIMES;
+
     int c = editorReadKey();
 
     switch (c)
@@ -718,7 +719,7 @@ void editorProcessKeypress()
     }
     break;
     default:
-        if (c > 26 || c == 9)
+        if ((c > 26 || c == 9) && !isInHelp)
         {
             editorInsertChar(c);
         }
