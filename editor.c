@@ -54,6 +54,7 @@ int editorReadKey()
             return '\x1b';
         if (read(STDIN_FILENO, &seq[1], 1) != 1)
             return '\x1b';
+
         if (seq[0] == '[')
         {
             if (seq[1] >= '0' && seq[1] <= '9')
@@ -78,6 +79,25 @@ int editorReadKey()
                         return HOME_KEY;
                     case '8':
                         return END_KEY;
+                    }
+                }
+                if (seq[2] == ';')
+                {
+                    char shf[2];
+                    if (read(STDIN_FILENO, &shf[0], 1) != 1)
+                        return '\x1b';
+                    if (read(STDIN_FILENO, &shf[1], 1) != 1)
+                        return '\x1b';
+                    switch (shf[1])
+                    {
+                    case 'C':
+                        return SHIFT_ARROW_RIGHT;
+                    case 'D':
+                        return SHIFT_ARROW_LEFT;
+                    case 'A':
+                        return SHIFT_ARROW_UP;
+                    case 'B':
+                        return SHIFT_ARROW_DOWN;
                     }
                 }
             }
@@ -437,14 +457,14 @@ void editorSave()
                 close(fd);
                 free(buf);
                 E.dirty = 0;
-                editorSetStatusMessage("%d bytes saved to disk", len);
+                editorSetStatusMessage("%d bytes disimpan", len);
                 return;
             }
         }
         close(fd);
     }
     free(buf);
-    editorSetStatusMessage("Error saving file: %s", strerror(errno));
+    editorSetStatusMessage("Error menyimpan : %s", strerror(errno));
 }
 char **openHelp(int *help_len)
 {
@@ -606,11 +626,9 @@ void editorMoveCursor(int key)
 
 void editorProcessKeypress()
 {
+    bool skipClearSelect = false;
     static int quit_times = SWIFT_QUIT_TIMES;
     int c = editorReadKey();
-
-    // Matikan selection text
-    selection.isOn = false;
 
     switch (c)
     {
@@ -620,7 +638,7 @@ void editorProcessKeypress()
     case CTRL_KEY('q'):
         if (E.dirty && quit_times > 0)
         {
-            editorSetStatusMessage("WARNING !! File has unsaved changes. Press Ctrl-Q %d more times to quit", quit_times);
+            editorSetStatusMessage("PERINGATAN !! FILE BELUM DISIMPAN TEKAN Ctrl + s UNTUK SIMPAN, Ctrl + q UNTUK KELUAR", quit_times);
             quit_times--;
             return;
         }
@@ -640,6 +658,7 @@ void editorProcessKeypress()
         break;
     case CTRL_KEY('f'):
         editorFind();
+        skipClearSelect = true;
         break;
     case BACKSPACE:
     case DEL_KEY:
@@ -652,10 +671,12 @@ void editorProcessKeypress()
     {
         if (c == PAGE_UP)
         {
+            // Pindah ke baris paling atas di layar
             C.y = E.rowoff;
         }
         else if (c == PAGE_DOWN)
         {
+            // Pindah ke baris paling bawah di layar
             C.y = E.rowoff + E.screenrows - 1;
             if (C.y > E.numrows)
                 C.y = E.numrows - 1;
@@ -674,6 +695,20 @@ void editorProcessKeypress()
         break;
     case CTRL_KEY('h'):
         isInHelp = true;
+    // HANDLE COPY PASTE
+    case CTRL_KEY('c'):
+        copy(E.row);
+        break;
+    case CTRL_KEY('v'):
+        paste();
+        break;
+    // SELECT
+    case SHIFT_ARROW_RIGHT:
+    case SHIFT_ARROW_LEFT:
+    case SHIFT_ARROW_UP:
+    case SHIFT_ARROW_DOWN:
+        selectMoveCursor(c);
+        skipClearSelect = true;
         break;
     case CTRL_KEY('l'):
     case '\x1b':
@@ -689,6 +724,9 @@ void editorProcessKeypress()
         }
         break;
     }
+    if (!skipClearSelect)
+        // Matikan selection text
+        clearSelected(&selection);
     quit_times = SWIFT_QUIT_TIMES;
 }
 
@@ -807,8 +845,8 @@ void editorDrawStatusBar(struct abuf *ab)
 {
     abAppend(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
-    int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       E.filename ? E.filename : "[No Name]", E.numrows,
+    int len = snprintf(status, sizeof(status), "%.20s - %d baris %s",
+                       E.filename ? E.filename : "[File Kosong]", E.numrows,
                        E.dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", C.y + 1, E.numrows);
     if (len > E.screencols)
@@ -896,7 +934,7 @@ void initEditor()
 /** Find **/
 void editorFind()
 {
-    char *query = editorPrompt("Search : %s (Tekan ESC Untuk Batalkan)", 9);
+    char *query = editorPrompt("Cari : %s (Tekan ESC Untuk Batalkan)", 7);
     if (query == NULL)
         return;
     int ketemu = 1;
@@ -931,20 +969,4 @@ void editorFind()
     }
 
     free(query);
-}
-
-void addSelectionText(struct abuf *ab, char *row, int len)
-{
-    // var at, sebagai penampung koordinat kolom
-    int at = 0;
-    // Memasukkan kolom sebelum kata terselect ke ab
-    abAppend(ab, &row[at], selection.x);
-    // Select Text sesuai kolom selection.x, sejumlah selection.len ke kanan
-    abAppend(ab, "\x1b[7m", 4);
-    at = selection.x;
-    abAppend(ab, &row[at], selection.len);
-    abAppend(ab, "\x1b[m", 3);
-    // Memasukkan kolom setelah kata terselect ke ab
-    at = selection.x + selection.len;
-    abAppend(ab, &row[at], len - at);
 }

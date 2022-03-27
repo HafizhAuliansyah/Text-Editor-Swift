@@ -17,9 +17,9 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
-#include <stdbool.h>
 
 #include "buffer.h"
+
 /* define */
 #define CTRL_KEY(k) ((k)&0x1f)
 #define SWIFT_TAB_STOP 8
@@ -40,7 +40,12 @@ enum editorKey
     HOME_KEY,
     END_KEY,
     PAGE_UP,
-    PAGE_DOWN
+    PAGE_DOWN,
+    // Shift + Key
+    SHIFT_ARROW_LEFT,
+    SHIFT_ARROW_RIGHT,
+    SHIFT_ARROW_UP,
+    SHIFT_ARROW_DOWN,
 };
 
 /* data */
@@ -73,15 +78,11 @@ struct cursorHandler
     int y;
     int rx;
 };
-struct selection
-{
-    int x;
-    int y;
-    int len;
-    bool isOn;
-};
 
 struct editorConfig E;
+struct cursorHandler C;
+struct cursorHandler stat_cursor;
+#include "text_operation.h"
 
 /* terminal */
 void die(const char *s);
@@ -165,8 +166,6 @@ void editorDrawMessageBar(struct abuf *ab);
 void editorRefreshScreen();
 
 void editorSetStatusMessage(const char *fmt, ...);
-
-void addSelectionText(struct abuf *ab, char *row, int len);
 
 /* init */
 void initEditor();
